@@ -1,6 +1,6 @@
 # Gutter
 
-Gutter is a Windows-first terminal text editor built with Rust, `ratatui`, and `crossterm`.
+Gutter is a Windows terminal text editor built with Rust, `ratatui`, and `crossterm`.
 
 It is an early but usable project editor with a sidebar browser, multi-file tabs, autosave, quick open, command palette, in-file find and replace, session restore, mouse support, and syntax highlighting.
 
