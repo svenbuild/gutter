@@ -357,7 +357,7 @@ fn render_buffer_lines(
     let mut output = Vec::new();
 
     for index in 0..end_line {
-        let line_text = buffer.line_text(index);
+        let line_text = sanitize_terminal_text(&buffer.line_text(index));
         let syntax_spans = syntax_line_spans(
             &mut highlighter,
             syntax_set,
@@ -1062,6 +1062,18 @@ fn crop_text(text: &str, scroll_x: usize, width: usize) -> String {
     text.chars().skip(scroll_x).take(width).collect::<String>()
 }
 
+fn sanitize_terminal_text(text: &str) -> String {
+    text.chars()
+        .map(|ch| {
+            if ch != '\t' && ch.is_control() {
+                '�'
+            } else {
+                ch
+            }
+        })
+        .collect()
+}
+
 fn truncate_text(text: &str, width: usize) -> String {
     if width == 0 {
         return String::new();
@@ -1250,5 +1262,30 @@ mod tests {
             .unwrap();
 
         assert_eq!(completed.area.width, 20);
+    }
+
+    #[test]
+    fn sanitize_terminal_text_strips_escape_sequences() {
+        let cleaned = sanitize_terminal_text("safe\u{1b}]52;c;payload\u{07}tail");
+
+        assert_eq!(cleaned, "safe�]52;c;payload�tail");
+    }
+
+    #[test]
+    fn syntax_spans_do_not_emit_escape_characters() {
+        let syntax_set = SyntaxSet::load_defaults_newlines();
+        let theme = ThemeSet::load_defaults().themes["InspiredGitHub"].clone();
+        let syntax = syntax_set.find_syntax_plain_text();
+        let mut highlighter = HighlightLines::new(syntax, &theme);
+        let palette = palette();
+
+        let text = sanitize_terminal_text("before\u{1b}[31mred");
+        let spans = syntax_line_spans(&mut highlighter, &syntax_set, &text, 0, 40, 0, palette);
+        let rendered = spans
+            .iter()
+            .map(|span| span.content.to_string())
+            .collect::<String>();
+
+        assert!(!rendered.contains('\u{1b}'));
     }
 }
